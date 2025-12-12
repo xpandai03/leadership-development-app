@@ -2,19 +2,24 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { CheckCircle, Sparkles } from "lucide-react"
+import { CheckCircle, Sparkles, Loader2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { createClient } from "@/lib/supabase/client"
 
-interface DummyUser {
+interface UserData {
   email: string
+  name?: string
+  userId?: string
   loginTime: string
   leadershipTheme?: string
   progressVision?: string
 }
 
 export default function WelcomePage() {
-  const [user, setUser] = useState<DummyUser | null>(null)
+  const [user, setUser] = useState<UserData | null>(null)
   const [mondayNudge, setMondayNudge] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -28,9 +33,78 @@ export default function WelcomePage() {
     setUser(JSON.parse(dummyUser))
   }, [router])
 
-  const handleEnterApp = () => {
-    // For now, just show an alert - this would normally take them to the main app
-    alert("Welcome to the app! This would normally take you to the main dashboard.")
+  const handleEnterApp = async () => {
+    if (!user) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const supabase = createClient()
+
+      // Get current authenticated user
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+
+      if (!authUser) {
+        setError("Session expired. Please sign in again.")
+        router.push("/")
+        return
+      }
+
+      // Save development theme if provided
+      if (user.leadershipTheme) {
+        const themeText = user.leadershipTheme.replace(/-/g, " ")
+        const { error: themeError } = await supabase
+          .from('development_themes')
+          .insert({
+            user_id: authUser.id,
+            theme_text: themeText.charAt(0).toUpperCase() + themeText.slice(1),
+          })
+
+        if (themeError) {
+          console.error('Error saving theme:', themeError)
+          // Don't block - continue anyway
+        }
+      }
+
+      // Save progress vision if provided
+      if (user.progressVision) {
+        const { error: progressError } = await supabase
+          .from('progress_entries')
+          .insert({
+            user_id: authUser.id,
+            text: user.progressVision,
+          })
+
+        if (progressError) {
+          console.error('Error saving progress:', progressError)
+          // Don't block - continue anyway
+        }
+      }
+
+      // Update nudge preference
+      const { error: settingsError } = await supabase
+        .from('settings')
+        .update({ receive_weekly_nudge: mondayNudge })
+        .eq('user_id', authUser.id)
+
+      if (settingsError) {
+        console.error('Error updating settings:', settingsError)
+        // Don't block - continue anyway
+      }
+
+      // Clear localStorage
+      localStorage.removeItem("dummyUser")
+
+      // Navigate to client home - use window.location for a full page navigation
+      // to ensure the server component reloads with fresh data
+      window.location.href = "/client/home"
+
+    } catch (err) {
+      console.error('Error during onboarding completion:', err)
+      setError("Something went wrong. Please try again.")
+      setIsLoading(false)
+    }
   }
 
   if (!user) {
@@ -49,8 +123,8 @@ export default function WelcomePage() {
           key={i}
           className="absolute w-3 h-3 bg-[#8B1E3F] rounded-full opacity-60"
           initial={{
-            x: Math.random() * window.innerWidth,
-            y: window.innerHeight + 50,
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 500),
+            y: (typeof window !== 'undefined' ? window.innerHeight : 500) + 50,
             opacity: 0,
           }}
           animate={{
@@ -153,7 +227,7 @@ export default function WelcomePage() {
               className="flex flex-wrap gap-2 justify-center mb-8"
             >
               <div className="px-4 py-2 bg-[#f0f3fa] rounded-full text-sm font-mono text-gray-600 shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff]">
-                Your theme: {user.leadershipTheme ? user.leadershipTheme.replace("-", " ") : "Custom theme"}
+                Your theme: {user.leadershipTheme ? user.leadershipTheme.replace(/-/g, " ") : "Custom theme"}
               </div>
               <div className="px-4 py-2 bg-[#f0f3fa] rounded-full text-sm font-mono text-gray-600 shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff]">
                 Next step: Weekly actions
@@ -163,19 +237,40 @@ export default function WelcomePage() {
               </div>
             </motion.div>
 
+            {/* Error message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-mono w-full"
+              >
+                {error}
+              </motion.div>
+            )}
+
             {/* Enter app button */}
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2, duration: 0.6 }}
               onClick={handleEnterApp}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-[#f0f3fa] rounded-2xl text-lg font-semibold shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff] hover:shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 font-mono"
+              disabled={isLoading}
+              whileHover={{ scale: isLoading ? 1 : 1.05 }}
+              whileTap={{ scale: isLoading ? 1 : 0.95 }}
+              className={`px-8 py-4 bg-[#f0f3fa] rounded-2xl text-lg font-semibold shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff] hover:shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 font-mono ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               style={{ color: "#8B1E3F" }}
             >
-              Enter the app
-              <Sparkles className="w-5 h-5" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Enter the app
+                  <Sparkles className="w-5 h-5" />
+                </>
+              )}
             </motion.button>
           </div>
         </motion.div>

@@ -31,3 +31,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Environment variables
+.env
+
+# Local files
+dec-11-MasterBuildLogs.md
+TEST_CREDENTIALS.md

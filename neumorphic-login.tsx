@@ -6,6 +6,8 @@ import { motion } from "framer-motion"
 import { Eye, EyeOff } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Logo from "./app/components/Logo"
+import { createClient } from "@/lib/supabase/client"
+import { isCoachEmail } from "@/lib/constants"
 
 interface InputFieldProps {
   type: string
@@ -44,15 +46,13 @@ const InputField: React.FC<InputFieldProps> = ({ type, placeholder, value, onCha
 }
 
 interface LoginButtonProps {
-  onClick: () => void
   isLoading: boolean
 }
 
-const LoginButton: React.FC<LoginButtonProps> = ({ onClick, isLoading }) => {
+const LoginButton: React.FC<LoginButtonProps> = ({ isLoading }) => {
   return (
     <motion.button
       type="submit"
-      onClick={onClick}
       whileHover={{
         scale: 1.02,
       }}
@@ -65,18 +65,23 @@ const LoginButton: React.FC<LoginButtonProps> = ({ onClick, isLoading }) => {
       }}
       disabled={isLoading}
     >
-      {isLoading ? "Loading..." : "Sign In"}
+      {isLoading ? "Signing in..." : "Sign In"}
     </motion.button>
   )
 }
 
-const FooterLinks: React.FC = () => {
+interface FooterLinksProps {
+  onCreateAccount: () => void
+}
+
+const FooterLinks: React.FC<FooterLinksProps> = ({ onCreateAccount }) => {
   return (
     <div className="flex justify-between items-center text-sm">
       <button className="text-gray-500 hover:text-[#8B1E3F] hover:underline transition-all duration-200 font-mono">
         Forgot password?
       </button>
       <button
+        onClick={onCreateAccount}
         className="text-gray-500 hover:text-[#8B1E3F] hover:underline transition-all duration-200 font-mono"
         style={{
           marginLeft: "5px",
@@ -92,45 +97,145 @@ const LoginCard: React.FC = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [name, setName] = useState("")
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
 
     // Basic validation
     if (!email || !password) {
-      alert("Please fill in both fields")
+      setError("Please fill in all required fields")
       return
     }
 
     if (!email.includes("@")) {
-      alert("Please enter a valid email address")
+      setError("Please enter a valid email address")
       return
     }
 
-    // Simulate loading
+    if (isSignUp && !name) {
+      setError("Please enter your name")
+      return
+    }
+
+    if (isSignUp && password.length < 6) {
+      setError("Password must be at least 6 characters")
+      return
+    }
+
     setIsLoading(true)
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const supabase = createClient()
 
-    // Store dummy user data
-    localStorage.setItem(
-      "dummyUser",
-      JSON.stringify({
-        email,
-        loginTime: new Date().toISOString(),
-      }),
-    )
+      if (isSignUp) {
+        // Sign up new user
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name,
+              role: 'client',
+            },
+          },
+        })
 
-    // Navigate to onboarding
-    router.push("/onboarding")
+        if (signUpError) {
+          setError(signUpError.message)
+          setIsLoading(false)
+          return
+        }
+
+        if (data.user) {
+          // Store user info for onboarding flow
+          localStorage.setItem(
+            "dummyUser",
+            JSON.stringify({
+              email,
+              name,
+              userId: data.user.id,
+              loginTime: new Date().toISOString(),
+            }),
+          )
+          // Navigate to onboarding for new users
+          router.push("/onboarding")
+        }
+      } else {
+        // Sign in existing user
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (signInError) {
+          setError(signInError.message)
+          setIsLoading(false)
+          return
+        }
+
+        if (data.user) {
+          // Check if user is a coach by email (hardcoded list)
+          if (isCoachEmail(email)) {
+            // Coach goes directly to dashboard - no onboarding
+            // Use window.location for full page navigation to ensure server component loads
+            window.location.href = '/coach/dashboard'
+            return
+          }
+
+          // For clients, check if they have completed onboarding (has a theme)
+          const { data: themes } = await supabase
+            .from('development_themes')
+            .select('id')
+            .eq('user_id', data.user.id)
+            .limit(1)
+
+          // Get user profile for name
+          const { data: profile } = await supabase
+            .from('users')
+            .select('name')
+            .eq('id', data.user.id)
+            .single()
+
+          if (themes && themes.length > 0) {
+            // Client with completed onboarding goes to home
+            // Use window.location for full page navigation to ensure server component loads
+            window.location.href = '/client/home'
+          } else {
+            // Client without onboarding - store info and go to onboarding
+            localStorage.setItem(
+              "dummyUser",
+              JSON.stringify({
+                email,
+                name: profile?.name || email.split('@')[0],
+                userId: data.user.id,
+                loginTime: new Date().toISOString(),
+              }),
+            )
+            router.push("/onboarding")
+          }
+        }
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.")
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="w-full flex flex-col items-center">
-      <h1 className="text-3xl text-center font-mono font-black text-gray-700 mt-20 mb-2">Sign in to The Leadership Development App</h1>
-      <p className="text-center font-mono text-gray-500 mb-6 max-w-md">A calm space to reflect, grow, and practice better leadership every week.</p>
+      <h1 className="text-3xl text-center font-mono font-black text-gray-700 mt-20 mb-2">
+        {isSignUp ? "Create your account" : "Sign in to The Leadership Development App"}
+      </h1>
+      <p className="text-center font-mono text-gray-500 mb-6 max-w-md">
+        {isSignUp
+          ? "Start your leadership development journey today."
+          : "A calm space to reflect, grow, and practice better leadership every week."}
+      </p>
       <motion.div
         initial={{
           opacity: 0,
@@ -149,6 +254,10 @@ const LoginCard: React.FC = () => {
           <Logo />
 
           <form onSubmit={handleSubmit} className="w-full">
+            {isSignUp && (
+              <InputField type="text" placeholder="Your Name" value={name} onChange={setName} />
+            )}
+
             <InputField type="email" placeholder="Email" value={email} onChange={setEmail} />
 
             <InputField
@@ -159,10 +268,28 @@ const LoginCard: React.FC = () => {
               showPasswordToggle={true}
             />
 
-            <LoginButton onClick={handleSubmit} isLoading={isLoading} />
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-mono">
+                {error}
+              </div>
+            )}
+
+            <LoginButton isLoading={isLoading} />
           </form>
 
-          <FooterLinks />
+          <FooterLinks onCreateAccount={() => setIsSignUp(!isSignUp)} />
+
+          {isSignUp && (
+            <p className="text-center text-sm text-gray-500 mt-4 font-mono">
+              Already have an account?{" "}
+              <button
+                onClick={() => setIsSignUp(false)}
+                className="text-[#8B1E3F] hover:underline"
+              >
+                Sign in
+              </button>
+            </p>
+          )}
         </div>
       </motion.div>
     </div>

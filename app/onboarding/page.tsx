@@ -4,25 +4,56 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { CheckCircle, ArrowRight } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
-interface DummyUser {
+interface UserData {
   email: string
+  name?: string
+  userId?: string
   loginTime: string
 }
 
 export default function OnboardingPage() {
-  const [user, setUser] = useState<DummyUser | null>(null)
+  const [user, setUser] = useState<UserData | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    // Check if user is "logged in"
-    const dummyUser = localStorage.getItem("dummyUser")
-    if (!dummyUser) {
-      router.push("/")
-      return
+    const checkAuth = async () => {
+      // Check localStorage first
+      const dummyUser = localStorage.getItem("dummyUser")
+      if (dummyUser) {
+        setUser(JSON.parse(dummyUser))
+        return
+      }
+
+      // If no localStorage, check Supabase auth
+      const supabase = createClient()
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+
+      if (!authUser) {
+        router.push("/")
+        return
+      }
+
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', authUser.id)
+        .single()
+
+      // Create localStorage entry
+      const userData = {
+        email: authUser.email || '',
+        name: profile?.name || authUser.email?.split('@')[0] || '',
+        userId: authUser.id,
+        loginTime: new Date().toISOString(),
+      }
+      localStorage.setItem("dummyUser", JSON.stringify(userData))
+      setUser(userData)
     }
 
-    setUser(JSON.parse(dummyUser))
+    checkAuth()
   }, [router])
 
   const handleContinue = () => {
