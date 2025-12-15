@@ -228,7 +228,10 @@ const LoginCard: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col items-center">
-      <h1 className="text-3xl text-center font-mono font-black text-gray-700 mt-20 mb-2">
+      <div className="mt-20 mb-4">
+        <Logo />
+      </div>
+      <h1 className="text-3xl text-center font-mono font-black text-gray-700 mb-2">
         {isSignUp ? "Create your account" : "Sign in to The Leadership Development App"}
       </h1>
       <p className="text-center font-mono text-gray-500 mb-6 max-w-md">
@@ -251,8 +254,6 @@ const LoginCard: React.FC = () => {
         className="w-full max-w-md mx-auto bg-[#f0f3fa] rounded-3xl p-8 shadow-[20px_20px_40px_#d1d9e6,-20px_-20px_40px_#ffffff] mt-4"
       >
         <div className="flex flex-col items-center">
-          <Logo />
-
           <form onSubmit={handleSubmit} className="w-full">
             {isSignUp && (
               <InputField type="text" placeholder="Your Name" value={name} onChange={setName} />
