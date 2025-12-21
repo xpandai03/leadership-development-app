@@ -62,24 +62,15 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Optional: Redirect unauthenticated users to login
-  // Uncomment and customize the paths as needed
-  //
-  // const isAuthPage = request.nextUrl.pathname.startsWith('/login') ||
-  //                    request.nextUrl.pathname.startsWith('/signup')
-  //
-  // if (!user && !isAuthPage && request.nextUrl.pathname !== '/') {
-  //   const url = request.nextUrl.clone()
-  //   url.pathname = '/login'
-  //   return NextResponse.redirect(url)
-  // }
+  // Redirect unauthenticated users away from protected routes
+  const pathname = request.nextUrl.pathname
+  const isProtected = pathname.startsWith('/client') || pathname.startsWith('/coach')
 
-  // Optional: Redirect authenticated users away from auth pages
-  // if (user && isAuthPage) {
-  //   const url = request.nextUrl.clone()
-  //   url.pathname = '/client/home'
-  //   return NextResponse.redirect(url)
-  // }
+  if (!user && isProtected) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }
