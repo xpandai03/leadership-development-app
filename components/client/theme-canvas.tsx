@@ -184,8 +184,8 @@ export function ThemeCanvas({ theme, hypotheses, onDelete }: ThemeCanvasProps) {
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-4 h-4 text-[#8B1E3F]" />
-          <h4 className="text-sm font-semibold text-gray-600 font-mono">Success Description</h4>
-          <span className="text-xs text-gray-400 font-mono">How does progress look like?</span>
+          <h4 className="text-sm font-semibold text-gray-600 font-mono">Envisioned Future</h4>
+          <span className="text-xs text-gray-400 font-mono">What will be different?</span>
         </div>
 
         {isEditingDesc ? (
@@ -204,7 +204,7 @@ export function ThemeCanvas({ theme, hypotheses, onDelete }: ThemeCanvasProps) {
                   setDescError(null)
                 }
               }}
-              placeholder="Describe what success looks like when you've made progress on this theme..."
+              placeholder="Describe how you'll feel, act, and show up differently. What will others notice? What will feel easier?"
               disabled={isDescPending}
               autoFocus
               rows={4}
@@ -256,7 +256,7 @@ export function ThemeCanvas({ theme, hypotheses, onDelete }: ThemeCanvasProps) {
             className="w-full px-4 py-3 bg-[#f0f3fa] rounded-xl shadow-[inset_3px_3px_6px_#d1d9e6,inset_-3px_-3px_6px_#ffffff] text-left hover:shadow-[inset_2px_2px_4px_#d1d9e6,inset_-2px_-2px_4px_#ffffff] transition-all"
           >
             <p className="text-sm text-gray-400 font-mono italic">
-              Click to describe what success looks like...
+              Describe your envisioned future...
             </p>
           </button>
         )}

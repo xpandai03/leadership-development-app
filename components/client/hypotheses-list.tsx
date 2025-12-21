@@ -51,8 +51,8 @@ export function HypothesesList({ themeId, hypotheses }: HypothesesListProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="text-sm font-semibold text-gray-600 font-mono">Success Hypotheses</h4>
-          <p className="text-xs text-gray-400 font-mono">How will I make progress on this theme?</p>
+          <h4 className="text-sm font-semibold text-gray-600 font-mono">Ideas & Experiments</h4>
+          <p className="text-xs text-gray-400 font-mono">Principles, mantras, or experiments you want to try</p>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export function HypothesesList({ themeId, hypotheses }: HypothesesListProps) {
       {/* Empty state */}
       {hypotheses.length === 0 && !isAdding && (
         <p className="text-sm text-gray-400 font-mono italic py-2">
-          No hypotheses yet. Add ideas for how you&apos;ll make progress.
+          What ideas might help? Add principles, experiments, or reminders.
         </p>
       )}
 
@@ -80,7 +80,7 @@ export function HypothesesList({ themeId, hypotheses }: HypothesesListProps) {
             className="flex items-center gap-2 px-3 py-2 text-sm font-mono text-gray-500 hover:text-[#8B1E3F] bg-[#f0f3fa] rounded-lg shadow-[3px_3px_6px_#d1d9e6,-3px_-3px_6px_#ffffff] hover:shadow-[2px_2px_4px_#d1d9e6,-2px_-2px_4px_#ffffff] active:shadow-[inset_2px_2px_4px_#d1d9e6,inset_-2px_-2px_4px_#ffffff] transition-all duration-200"
           >
             <Plus className="w-4 h-4" />
-            Add hypothesis
+            Add idea
           </button>
         ) : (
           <div className="space-y-2">
@@ -90,7 +90,7 @@ export function HypothesesList({ themeId, hypotheses }: HypothesesListProps) {
                 value={newText}
                 onChange={(e) => setNewText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="What experiment or strategy will you try?"
+                placeholder="A principle, experiment, or reminder..."
                 disabled={isPending}
                 autoFocus
                 className={`flex-1 px-3 py-2 bg-[#f0f3fa] rounded-lg text-sm text-gray-700 placeholder-gray-400 font-mono outline-none shadow-[inset_3px_3px_6px_#d1d9e6,inset_-3px_-3px_6px_#ffffff] focus:ring-2 focus:ring-[#8B1E3F80] transition-all duration-200 ${

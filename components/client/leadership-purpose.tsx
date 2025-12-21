@@ -48,12 +48,12 @@ export function LeadershipPurpose({ purpose }: LeadershipPurposeProps) {
     <div className="bg-[#f0f3fa] rounded-2xl p-6 shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#f0f3fa] flex items-center justify-center shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff]">
-            <Compass className="h-6 w-6 text-[#8B1E3F]" />
+          <div className="w-10 h-10 rounded-full bg-[#f0f3fa] flex items-center justify-center shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff]">
+            <Compass className="h-5 w-5 text-[#8B1E3F]" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-700 font-mono">Leadership Purpose</h2>
-            <p className="text-sm text-gray-500 font-mono">What kind of leader do I want to become?</p>
+            <h2 className="text-base font-medium text-gray-700 font-mono">Leadership Purpose</h2>
+            <p className="text-sm text-gray-400 font-mono">Your north star — optional</p>
           </div>
         </div>
         {!isEditing && (
@@ -73,7 +73,7 @@ export function LeadershipPurpose({ purpose }: LeadershipPurposeProps) {
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe the kind of leader you want to become..."
+            placeholder="The kind of leader you aspire to be..."
             disabled={isPending}
             autoFocus
             rows={3}
@@ -115,7 +115,7 @@ export function LeadershipPurpose({ purpose }: LeadershipPurposeProps) {
           className="w-full px-5 py-4 bg-[#f0f3fa] rounded-xl shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] text-left"
         >
           <p className="text-sm text-gray-400 font-mono italic">
-            Click to add your leadership purpose (optional)
+            Add a guiding purpose...
           </p>
         </button>
       )}
