@@ -1,21 +1,21 @@
 "use client"
 
-import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react"
 
 interface DummyUser {
   email: string
   loginTime: string
-  leadershipTheme?: string
-  progressVision?: string
+  leadershipPurpose?: string
+  themeName?: string
+  successDescription?: string
 }
 
 export default function CompanyInfoPage() {
   const [user, setUser] = useState<DummyUser | null>(null)
-  const [progressVision, setProgressVision] = useState<string>("")
+  const [successDescription, setSuccessDescription] = useState<string>("")
   const [isFocused, setIsFocused] = useState(false)
   const router = useRouter()
 
@@ -27,16 +27,18 @@ export default function CompanyInfoPage() {
       return
     }
 
-    setUser(JSON.parse(dummyUser))
+    const userData = JSON.parse(dummyUser)
+    setUser(userData)
+    if (userData.successDescription) setSuccessDescription(userData.successDescription)
   }, [router])
 
   const handleContinue = () => {
-    if (!progressVision.trim() || !user) return
+    if (!successDescription.trim() || !user) return
 
-    // Update user data with progress vision
+    // Update user data with success description
     const updatedUser = {
       ...user,
-      progressVision: progressVision.trim(),
+      successDescription: successDescription.trim(),
     }
     localStorage.setItem("dummyUser", JSON.stringify(updatedUser))
 
@@ -64,26 +66,46 @@ export default function CompanyInfoPage() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-2xl mx-auto bg-[#f0f3fa] rounded-3xl p-8 shadow-[20px_20px_40px_#d1d9e6,-20px_-20px_40px_#ffffff]"
       >
+        {/* Theme Context */}
+        {user.themeName && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="mb-6 px-4 py-3 bg-[#f0f3fa] rounded-xl shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff]"
+          >
+            <p className="text-sm text-gray-500 font-mono">
+              Your theme: <span className="text-[#8B1E3F] font-semibold">{user.themeName}</span>
+            </p>
+          </motion.div>
+        )}
+
         <div className="flex flex-col items-center text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-700 mb-2 font-mono">What does progress look like for you?</h1>
-          <p className="text-gray-500 font-mono">Describe what success feels like when you imagine future progress.</p>
+          <div className="w-12 h-12 rounded-full bg-[#f0f3fa] flex items-center justify-center mb-4 shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff]">
+            <Sparkles className="w-6 h-6 text-[#8B1E3F]" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-700 mb-2 font-mono">How does success look like?</h1>
+          <p className="text-gray-500 font-mono">Describe your envisioned future when you've made progress on this theme.</p>
         </div>
 
-        {/* Progress Vision Textarea */}
+        {/* Success Description Textarea */}
         <div className="mb-8">
           <textarea
-            value={progressVision}
-            onChange={(e) => setProgressVision(e.target.value)}
+            value={successDescription}
+            onChange={(e) => setSuccessDescription(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder='For example: "I communicate clearly in meetings, my team knows what to focus on, and I feel less rushed."'
-            rows={5}
+            placeholder='For example: "I trust my team to handle decisions. I ask questions before offering solutions. I feel calm knowing others can lead without me."'
+            rows={6}
             className={`w-full px-6 py-4 bg-[#f0f3fa] rounded-2xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 font-mono resize-none ${
               isFocused
                 ? "shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff] ring-2 ring-[#8B1E3F80]"
                 : "shadow-[inset_8px_8px_16px_#d1d9e6,inset_-8px_-8px_16px_#ffffff]"
             }`}
           />
+          <p className="text-xs text-gray-400 mt-2 font-mono">
+            This is not a goal to check off - it's a vision to guide your journey.
+          </p>
         </div>
 
         {/* Navigation Buttons */}
@@ -93,8 +115,6 @@ export default function CompanyInfoPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
             onClick={handleGoBack}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
             className="px-6 py-3 bg-[#f0f3fa] rounded-2xl font-semibold shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff] hover:shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 font-mono text-gray-600"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -106,11 +126,9 @@ export default function CompanyInfoPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 1.0 }}
             onClick={handleContinue}
-            disabled={!progressVision.trim()}
-            whileHover={progressVision.trim() ? { scale: 1.02 } : {}}
-            whileTap={progressVision.trim() ? { scale: 0.98 } : {}}
+            disabled={!successDescription.trim()}
             className={`px-6 py-3 bg-[#f0f3fa] rounded-2xl font-semibold shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff] hover:shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 font-mono ${
-              progressVision.trim() ? "text-[#8B1E3F]" : "text-gray-400 opacity-50 cursor-not-allowed"
+              successDescription.trim() ? "text-[#8B1E3F]" : "text-gray-400 opacity-50 cursor-not-allowed"
             }`}
           >
             Continue

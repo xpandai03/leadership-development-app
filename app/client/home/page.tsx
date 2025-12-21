@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation'
-import { CheckSquare, TrendingUp } from 'lucide-react'
 import { getUser } from '@/lib/supabase/server'
-import { getClientHomeSummary } from '@/lib/queries/client'
-import { ThemeCard } from '@/components/client/theme-card'
-import { WeeklyActionsList } from '@/components/client/weekly-actions-list'
-import { ProgressTimeline } from '@/components/client/progress-timeline'
+import { getCanvasSummary } from '@/lib/queries/client'
+import { LeadershipPurpose } from '@/components/client/leadership-purpose'
+import { ThemeCanvas } from '@/components/client/theme-canvas'
+import { AddThemeButton } from '@/components/client/add-theme-button'
 import { PhoneMissingBanner } from '@/components/client/phone-missing-banner'
 import { AppHeader } from '@/components/app-header'
 
@@ -16,9 +15,8 @@ export default async function ClientHomePage() {
     redirect('/login')
   }
 
-  // Fetch all client data
-  const { user: profile, currentTheme, progressEntries, weeklyActions } =
-    await getClientHomeSummary(user.id)
+  // Fetch canvas data
+  const { user: profile, themes } = await getCanvasSummary(user.id)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -34,43 +32,39 @@ export default async function ClientHomePage() {
             Welcome back{profile?.name ? `, ${profile.name}` : ''}
           </h1>
           <p className="text-gray-500 mt-1 font-mono">
-            Track your leadership development journey
+            Your leadership development canvas
           </p>
         </div>
 
-        {/* Main Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Development Theme */}
-          <div className="md:col-span-2">
-            <ThemeCard theme={currentTheme} />
-          </div>
+        {/* Canvas Layout */}
+        <div className="space-y-6">
+          {/* Leadership Purpose */}
+          <LeadershipPurpose purpose={profile?.leadership_purpose || null} />
 
-          {/* Weekly Actions */}
-          <div className="bg-[#f0f3fa] rounded-2xl p-6 shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff]">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-[#f0f3fa] flex items-center justify-center shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff]">
-                <CheckSquare className="h-5 w-5 text-[#8B1E3F]" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-700 font-mono">Weekly Actions</h2>
-                <p className="text-sm text-gray-500 font-mono">Your commitments for this week</p>
-              </div>
+          {/* Development Themes Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-700 font-mono">
+                Development Themes
+              </h2>
+              <span className="text-sm text-gray-400 font-mono">
+                {themes.length} of 3 themes
+              </span>
             </div>
-            <WeeklyActionsList actions={weeklyActions} />
-          </div>
 
-          {/* Progress Entries */}
-          <div className="bg-[#f0f3fa] rounded-2xl p-6 shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff]">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-[#f0f3fa] flex items-center justify-center shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff]">
-                <TrendingUp className="h-5 w-5 text-[#8B1E3F]" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-700 font-mono">Progress Journal</h2>
-                <p className="text-sm text-gray-500 font-mono">Your recent reflections and updates</p>
-              </div>
+            {/* Theme Cards */}
+            <div className="space-y-6">
+              {themes.map((themeData) => (
+                <ThemeCanvas
+                  key={themeData.id}
+                  theme={themeData}
+                  hypotheses={themeData.hypotheses}
+                />
+              ))}
             </div>
-            <ProgressTimeline entries={progressEntries} userId={user.id} />
+
+            {/* Add Theme Button */}
+            <AddThemeButton currentThemeCount={themes.length} />
           </div>
         </div>
       </div>

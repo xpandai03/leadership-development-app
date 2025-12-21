@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { CheckCircle, Sparkles, Loader2 } from "lucide-react"
+import { CheckCircle, Sparkles, Loader2, Plus, X, Lightbulb } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { createClient } from "@/lib/supabase/client"
 
@@ -11,14 +11,16 @@ interface UserData {
   name?: string
   userId?: string
   loginTime: string
-  leadershipTheme?: string
-  progressVision?: string
+  leadershipPurpose?: string
+  themeName?: string
+  successDescription?: string
 }
 
 export default function WelcomePage() {
   const [user, setUser] = useState<UserData | null>(null)
   const [mondayNudge, setMondayNudge] = useState(true)
   const [phone, setPhone] = useState('')
+  const [hypotheses, setHypotheses] = useState<string[]>([''])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -34,6 +36,24 @@ export default function WelcomePage() {
     setUser(JSON.parse(dummyUser))
   }, [router])
 
+  const addHypothesis = () => {
+    if (hypotheses.length < 5) {
+      setHypotheses([...hypotheses, ''])
+    }
+  }
+
+  const removeHypothesis = (index: number) => {
+    if (hypotheses.length > 1) {
+      setHypotheses(hypotheses.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateHypothesis = (index: number, value: string) => {
+    const updated = [...hypotheses]
+    updated[index] = value
+    setHypotheses(updated)
+  }
+
   const handleEnterApp = async () => {
     if (!user) return
 
@@ -42,6 +62,9 @@ export default function WelcomePage() {
       setError("Phone must be in format +1234567890 (e.g., +14155551234)")
       return
     }
+
+    // Filter out empty hypotheses
+    const validHypotheses = hypotheses.filter(h => h.trim())
 
     setIsLoading(true)
     setError(null)
@@ -58,47 +81,58 @@ export default function WelcomePage() {
         return
       }
 
-      // Save phone number if provided
-      if (phone) {
-        const { error: phoneError } = await supabase
+      // Save leadership purpose and phone number
+      const userUpdates: { phone?: string; leadership_purpose?: string } = {}
+      if (phone) userUpdates.phone = phone
+      if (user.leadershipPurpose) userUpdates.leadership_purpose = user.leadershipPurpose
+
+      if (Object.keys(userUpdates).length > 0) {
+        const { error: userError } = await supabase
           .from('users')
-          .update({ phone })
+          .update(userUpdates)
           .eq('id', authUser.id)
 
-        if (phoneError) {
-          console.error('Error saving phone:', phoneError)
-          // Don't block - continue anyway
+        if (userError) {
+          console.error('Error updating user:', userError)
         }
       }
 
-      // Save development theme if provided
-      if (user.leadershipTheme) {
-        const themeText = user.leadershipTheme.replace(/-/g, " ")
-        const { error: themeError } = await supabase
+      // Save development theme with success description
+      let themeId: string | null = null
+      if (user.themeName) {
+        const { data: themeData, error: themeError } = await supabase
           .from('development_themes')
           .insert({
             user_id: authUser.id,
-            theme_text: themeText.charAt(0).toUpperCase() + themeText.slice(1),
+            theme_text: user.themeName,
+            success_description: user.successDescription || null,
+            theme_order: 1,
           })
+          .select('id')
+          .single()
 
         if (themeError) {
           console.error('Error saving theme:', themeError)
-          // Don't block - continue anyway
+        } else {
+          themeId = themeData.id
         }
       }
 
-      // Save progress vision if provided
-      if (user.progressVision) {
-        const { error: progressError } = await supabase
-          .from('progress_entries')
-          .insert({
-            user_id: authUser.id,
-            text: user.progressVision,
-          })
+      // Save hypotheses linked to the theme
+      if (themeId && validHypotheses.length > 0) {
+        const hypothesisInserts = validHypotheses.map(h => ({
+          user_id: authUser.id,
+          theme_id: themeId,
+          action_text: h.trim(),
+          is_completed: false, // Required field, not used in canvas model
+        }))
 
-        if (progressError) {
-          console.error('Error saving progress:', progressError)
-          // Don't block - continue anyway
+        const { error: hypothesesError } = await supabase
+          .from('weekly_actions')
+          .insert(hypothesisInserts)
+
+        if (hypothesesError) {
+          console.error('Error saving hypotheses:', hypothesesError)
         }
       }
 
@@ -110,14 +144,12 @@ export default function WelcomePage() {
 
       if (settingsError) {
         console.error('Error updating settings:', settingsError)
-        // Don't block - continue anyway
       }
 
       // Clear localStorage
       localStorage.removeItem("dummyUser")
 
-      // Navigate to client home - use window.location for a full page navigation
-      // to ensure the server component reloads with fresh data
+      // Navigate to client home
       window.location.href = "/client/home"
 
     } catch (err) {
@@ -164,158 +196,167 @@ export default function WelcomePage() {
       {/* Main welcome card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
-        animate={{
-          opacity: 1,
-          scale: [0.9, 1.02, 1],
-        }}
-        transition={{
-          duration: 0.8,
-          times: [0, 0.6, 1],
-          ease: "easeOut",
-        }}
-        className="relative"
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-lg mx-auto bg-[#f0f3fa] rounded-3xl p-8 shadow-[20px_20px_40px_#d1d9e6,-20px_-20px_40px_#ffffff]"
       >
-        <motion.div
-          animate={{
-            scale: [1, 1.02, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "easeInOut",
-          }}
-          className="w-full max-w-lg mx-auto bg-[#f0f3fa] rounded-3xl p-12 shadow-[20px_20px_40px_#d1d9e6,-20px_-20px_40px_#ffffff]"
-        >
-          <div className="flex flex-col items-center text-center">
-            {/* Success icon */}
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{
-                delay: 0.3,
-                duration: 0.6,
-                type: "spring",
-                stiffness: 200,
-              }}
-              className="w-20 h-20 rounded-full flex items-center justify-center mb-8 bg-[#f0f3fa] shadow-[inset_8px_8px_16px_#d1d9e6,inset_-8px_-8px_16px_#ffffff]"
-            >
-              <CheckCircle className="w-10 h-10 text-[#8B1E3F]" />
-            </motion.div>
+        <div className="flex flex-col items-center text-center">
+          {/* Success icon */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, type: "spring" }}
+            className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[#f0f3fa] shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff]"
+          >
+            <CheckCircle className="w-8 h-8 text-[#8B1E3F]" />
+          </motion.div>
 
-            {/* Welcome text */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-              className="text-4xl font-bold text-gray-700 mb-4 font-mono"
-            >
-              You're ready to begin.
-            </motion.h1>
+          {/* Welcome text */}
+          <h1 className="text-2xl font-bold text-gray-700 mb-2 font-mono">
+            Almost there!
+          </h1>
+          <p className="text-gray-500 font-mono mb-6 text-sm">
+            Add a few initial hypotheses for how you'll make progress on <span className="text-[#8B1E3F]">{user.themeName}</span>.
+          </p>
 
-            {/* Personalized message */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              className="text-gray-500 font-mono mb-6 text-lg"
-            >
-              We'll use your development theme and vision of progress to help you design small weekly actions.
-            </motion.p>
-
-            {/* Phone Number Input */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.6 }}
-              className="w-full mb-6"
-            >
-              <label className="block text-sm font-mono text-gray-600 mb-2 text-left">
-                Phone Number (optional)
+          {/* Hypotheses Input */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="w-full mb-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="w-4 h-4 text-[#8B1E3F]" />
+              <label className="text-sm font-mono text-gray-600 text-left">
+                Success Hypotheses
               </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1234567890"
-                className="w-full px-4 py-3 bg-[#f0f3fa] rounded-2xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 font-mono shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff] focus:ring-2 focus:ring-[#8B1E3F80]"
-              />
-              <p className="mt-2 text-xs text-gray-500 font-mono text-left">
-                Required to receive SMS nudges from your coach
-              </p>
-            </motion.div>
-
-            {/* Monday Nudge Toggle */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0, duration: 0.6 }}
-              className="flex items-center justify-center gap-3 mb-8 px-6 py-4 bg-[#f0f3fa] rounded-2xl shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff]"
-            >
-              <Switch
-                checked={mondayNudge}
-                onCheckedChange={setMondayNudge}
-                className="data-[state=checked]:bg-[#8B1E3F]"
-              />
-              <label className="text-sm font-mono text-gray-600 cursor-pointer" onClick={() => setMondayNudge(!mondayNudge)}>
-                Receive a short leadership nudge every Monday morning
-              </label>
-            </motion.div>
-
-            {/* User selections summary */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1, duration: 0.6 }}
-              className="flex flex-wrap gap-2 justify-center mb-8"
-            >
-              <div className="px-4 py-2 bg-[#f0f3fa] rounded-full text-sm font-mono text-gray-600 shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff]">
-                Your theme: {user.leadershipTheme ? user.leadershipTheme.replace(/-/g, " ") : "Custom theme"}
-              </div>
-              <div className="px-4 py-2 bg-[#f0f3fa] rounded-full text-sm font-mono text-gray-600 shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff]">
-                Next step: Weekly actions
-              </div>
-              <div className="px-4 py-2 bg-[#f0f3fa] rounded-full text-sm font-mono text-gray-600 shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff]">
-                Reminder: Monday nudges
-              </div>
-            </motion.div>
-
-            {/* Error message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-mono w-full"
+              <span className="text-xs text-gray-400 font-mono">(optional)</span>
+            </div>
+            <p className="text-xs text-gray-400 font-mono text-left mb-3">
+              What experiments or strategies will you try?
+            </p>
+            <div className="space-y-2">
+              {hypotheses.map((hypothesis, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <span className="text-[#8B1E3F] font-mono">&bull;</span>
+                  <input
+                    type="text"
+                    value={hypothesis}
+                    onChange={(e) => updateHypothesis(index, e.target.value)}
+                    placeholder={`e.g., ${index === 0 ? 'Let others make decisions' : index === 1 ? 'Ask questions before giving advice' : 'Start with small experiments'}`}
+                    className="flex-1 px-3 py-2 bg-[#f0f3fa] rounded-xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 font-mono text-sm shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] focus:ring-2 focus:ring-[#8B1E3F80]"
+                  />
+                  {hypotheses.length > 1 && (
+                    <button
+                      onClick={() => removeHypothesis(index)}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {hypotheses.length < 5 && (
+              <button
+                onClick={addHypothesis}
+                className="mt-2 flex items-center gap-1 text-sm text-gray-500 hover:text-[#8B1E3F] font-mono transition-colors"
               >
-                {error}
-              </motion.div>
+                <Plus className="w-4 h-4" />
+                Add another
+              </button>
             )}
+          </motion.div>
 
-            {/* Enter app button */}
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.3, duration: 0.6 }}
-              onClick={handleEnterApp}
-              disabled={isLoading}
-              whileHover={{ scale: isLoading ? 1 : 1.05 }}
-              whileTap={{ scale: isLoading ? 1 : 0.95 }}
-              className={`px-8 py-4 bg-[#f0f3fa] rounded-2xl text-lg font-semibold shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff] hover:shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 font-mono ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              style={{ color: "#8B1E3F" }}
+          {/* Phone Number Input */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="w-full mb-6"
+          >
+            <label className="block text-sm font-mono text-gray-600 mb-2 text-left">
+              Phone Number (optional)
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+1234567890"
+              className="w-full px-4 py-3 bg-[#f0f3fa] rounded-2xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 font-mono shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff] focus:ring-2 focus:ring-[#8B1E3F80]"
+            />
+            <p className="mt-2 text-xs text-gray-500 font-mono text-left">
+              Required to receive SMS nudges from your coach
+            </p>
+          </motion.div>
+
+          {/* Monday Nudge Toggle */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="flex items-center justify-center gap-3 mb-6 px-4 py-3 bg-[#f0f3fa] rounded-xl shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] w-full"
+          >
+            <Switch
+              checked={mondayNudge}
+              onCheckedChange={setMondayNudge}
+              className="data-[state=checked]:bg-[#8B1E3F]"
+            />
+            <label className="text-sm font-mono text-gray-600 cursor-pointer" onClick={() => setMondayNudge(!mondayNudge)}>
+              Receive leadership nudges
+            </label>
+          </motion.div>
+
+          {/* Summary tags */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="flex flex-wrap gap-2 justify-center mb-6"
+          >
+            <div className="px-3 py-1.5 bg-[#f0f3fa] rounded-full text-xs font-mono text-gray-600 shadow-[3px_3px_6px_#d1d9e6,-3px_-3px_6px_#ffffff]">
+              Theme: {user.themeName}
+            </div>
+            <div className="px-3 py-1.5 bg-[#f0f3fa] rounded-full text-xs font-mono text-gray-600 shadow-[3px_3px_6px_#d1d9e6,-3px_-3px_6px_#ffffff]">
+              {hypotheses.filter(h => h.trim()).length} hypotheses
+            </div>
+          </motion.div>
+
+          {/* Error message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-mono w-full"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  Enter the app
-                  <Sparkles className="w-5 h-5" />
-                </>
-              )}
-            </motion.button>
-          </div>
-        </motion.div>
+              {error}
+            </motion.div>
+          )}
+
+          {/* Enter app button */}
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            onClick={handleEnterApp}
+            disabled={isLoading}
+            className={`px-8 py-4 bg-[#f0f3fa] rounded-2xl text-lg font-semibold shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff] hover:shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 font-mono ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{ color: "#8B1E3F" }}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                Enter the app
+                <Sparkles className="w-5 h-5" />
+              </>
+            )}
+          </motion.button>
+        </div>
       </motion.div>
     </div>
   )

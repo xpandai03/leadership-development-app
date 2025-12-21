@@ -66,10 +66,11 @@ export async function getCurrentTheme(
 }
 
 /**
- * Gets all development themes for a user.
+ * Gets all development themes for a user, ordered by theme_order.
+ * Used for the canvas view where themes are displayed in user-defined order.
  *
  * @param userId - The user's ID
- * @returns Array of themes, newest first
+ * @returns Array of themes, ordered by theme_order (1-3)
  */
 export async function getAllThemes(userId: string): Promise<DevelopmentTheme[]> {
   const supabase = await createClient()
@@ -78,10 +79,57 @@ export async function getAllThemes(userId: string): Promise<DevelopmentTheme[]> 
     .from('development_themes')
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order('theme_order', { ascending: true })
 
   if (error) {
     console.error('Error fetching themes:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * Gets hypotheses (formerly weekly_actions) for a specific theme.
+ *
+ * @param themeId - The theme's ID
+ * @returns Array of hypotheses for the theme
+ */
+export async function getHypothesesByTheme(themeId: string): Promise<WeeklyAction[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('weekly_actions')
+    .select('*')
+    .eq('theme_id', themeId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching hypotheses for theme:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * Gets all hypotheses for a user, optionally filtered by theme.
+ * Hypotheses without a theme_id are legacy data from before the canvas redesign.
+ *
+ * @param userId - The user's ID
+ * @returns Array of all hypotheses for the user
+ */
+export async function getAllHypotheses(userId: string): Promise<WeeklyAction[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('weekly_actions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching hypotheses:', error)
     return []
   }
 
@@ -255,6 +303,60 @@ export async function getClientHomeSummary(userId: string): Promise<{
     currentTheme,
     progressEntries,
     weeklyActions,
+    settings,
+  }
+}
+
+/**
+ * Theme with hypotheses - combines theme data with its associated hypotheses.
+ */
+export type ThemeWithHypotheses = DevelopmentTheme & {
+  hypotheses: WeeklyAction[]
+}
+
+/**
+ * Gets all themes for a user with their associated hypotheses.
+ * This is the main data structure for the canvas view.
+ *
+ * @param userId - The user's ID
+ * @returns Array of themes with their hypotheses
+ */
+export async function getThemesWithHypotheses(
+  userId: string
+): Promise<ThemeWithHypotheses[]> {
+  const [themes, allHypotheses] = await Promise.all([
+    getAllThemes(userId),
+    getAllHypotheses(userId),
+  ])
+
+  // Group hypotheses by theme_id
+  return themes.map((theme) => ({
+    ...theme,
+    hypotheses: allHypotheses.filter((h) => h.theme_id === theme.id),
+  }))
+}
+
+/**
+ * Gets a complete canvas summary for the client home screen.
+ * Returns all data needed for the Leadership Development Canvas view.
+ *
+ * @param userId - The user's ID
+ * @returns Complete canvas data including user, themes with hypotheses, and settings
+ */
+export async function getCanvasSummary(userId: string): Promise<{
+  user: User | null
+  themes: ThemeWithHypotheses[]
+  settings: Settings | null
+}> {
+  const [user, themes, settings] = await Promise.all([
+    getUserProfile(userId),
+    getThemesWithHypotheses(userId),
+    getUserSettings(userId),
+  ])
+
+  return {
+    user,
+    themes,
     settings,
   }
 }

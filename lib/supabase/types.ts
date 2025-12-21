@@ -26,6 +26,7 @@ export type Database = {
           name: string
           email: string
           phone: string | null
+          leadership_purpose: string | null
           created_at: string
         }
         Insert: {
@@ -34,6 +35,7 @@ export type Database = {
           name: string
           email: string
           phone?: string | null
+          leadership_purpose?: string | null
           created_at?: string
         }
         Update: {
@@ -42,6 +44,7 @@ export type Database = {
           name?: string
           email?: string
           phone?: string | null
+          leadership_purpose?: string | null
           created_at?: string
         }
         Relationships: []
@@ -51,18 +54,24 @@ export type Database = {
           id: string
           user_id: string
           theme_text: string
+          success_description: string | null
+          theme_order: number
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
           theme_text: string
+          success_description?: string | null
+          theme_order?: number
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           theme_text?: string
+          success_description?: string | null
+          theme_order?: number
           created_at?: string
         }
         Relationships: [
@@ -108,6 +117,7 @@ export type Database = {
         Row: {
           id: string
           user_id: string
+          theme_id: string | null
           action_text: string
           is_completed: boolean
           created_at: string
@@ -115,6 +125,7 @@ export type Database = {
         Insert: {
           id?: string
           user_id: string
+          theme_id?: string | null
           action_text: string
           is_completed?: boolean
           created_at?: string
@@ -122,6 +133,7 @@ export type Database = {
         Update: {
           id?: string
           user_id?: string
+          theme_id?: string | null
           action_text?: string
           is_completed?: boolean
           created_at?: string
@@ -132,6 +144,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_actions_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "development_themes"
             referencedColumns: ["id"]
           }
         ]
@@ -294,6 +313,7 @@ export type UserUpdate = Database['public']['Tables']['users']['Update']
 
 export type DevelopmentTheme = Database['public']['Tables']['development_themes']['Row']
 export type DevelopmentThemeInsert = Database['public']['Tables']['development_themes']['Insert']
+export type DevelopmentThemeUpdate = Database['public']['Tables']['development_themes']['Update']
 
 export type ProgressEntry = Database['public']['Tables']['progress_entries']['Row']
 export type ProgressEntryInsert = Database['public']['Tables']['progress_entries']['Insert']

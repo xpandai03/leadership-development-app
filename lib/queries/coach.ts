@@ -28,6 +28,22 @@ export interface ClientSummary {
 }
 
 /**
+ * Theme with hypotheses for canvas view.
+ */
+export interface ThemeWithHypotheses {
+  theme: DevelopmentTheme
+  hypotheses: WeeklyAction[]
+}
+
+/**
+ * Complete canvas data for coach deep view.
+ */
+export interface ClientCanvasData {
+  user: User
+  themes: ThemeWithHypotheses[]
+}
+
+/**
  * Gets all clients (users with role = 'client').
  * Only accessible by coaches due to RLS policies.
  *
@@ -131,6 +147,73 @@ export async function getClientWeeklyActions(
   }
 
   return data || []
+}
+
+/**
+ * Gets all development themes for a specific client, ordered by theme_order.
+ *
+ * @param clientId - The client's user ID
+ * @returns Array of development themes
+ */
+export async function getClientAllThemes(
+  clientId: string
+): Promise<DevelopmentTheme[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('development_themes')
+    .select('*')
+    .eq('user_id', clientId)
+    .order('theme_order', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching client themes:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * Gets the complete canvas data for a client (for coach deep view).
+ * Returns all themes with their associated hypotheses.
+ *
+ * @param clientId - The client's user ID
+ * @returns ClientCanvasData with user and all themes with hypotheses
+ */
+export async function getClientCanvasData(
+  clientId: string
+): Promise<ClientCanvasData | null> {
+  const supabase = await createClient()
+
+  // Fetch user first
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', clientId)
+    .single()
+
+  if (userError || !user) {
+    console.error('Error fetching client:', userError)
+    return null
+  }
+
+  // Fetch themes and hypotheses in parallel
+  const [themes, allHypotheses] = await Promise.all([
+    getClientAllThemes(clientId),
+    getClientWeeklyActions(clientId),
+  ])
+
+  // Group hypotheses by theme
+  const themesWithHypotheses: ThemeWithHypotheses[] = themes.map((theme) => ({
+    theme,
+    hypotheses: allHypotheses.filter((h) => h.theme_id === theme.id),
+  }))
+
+  return {
+    user,
+    themes: themesWithHypotheses,
+  }
 }
 
 /**
