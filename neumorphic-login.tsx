@@ -237,7 +237,7 @@ const LoginCard: React.FC = () => {
       <p className="text-center font-mono text-gray-500 mb-6 max-w-md">
         {isSignUp
           ? "Start your leadership development journey today."
-          : "A calm space to reflect, grow, and practice better leadership every week."}
+          : "A space to reflect, grow, and practice better leadership every week."}
       </p>
       <motion.div
         initial={{
