@@ -2,9 +2,10 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Compass, Target, Sparkles, MessageCircle, Phone } from 'lucide-react'
 import { getUser } from '@/lib/supabase/server'
-import { getClientCanvasData } from '@/lib/queries/coach'
+import { getClientCanvasData, getNudgesSentToClient } from '@/lib/queries/coach'
 import { AppHeader } from '@/components/app-header'
 import { ClientNudgeButton } from '@/components/coach/client-nudge-button'
+import { NudgeHistory } from '@/components/coach/nudge-history'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -20,8 +21,11 @@ export default async function CoachClientDetailPage({ params }: PageProps) {
     redirect('/login')
   }
 
-  // Get client canvas data
-  const clientData = await getClientCanvasData(clientId)
+  // Get client canvas data and nudge history in parallel
+  const [clientData, nudgeHistory] = await Promise.all([
+    getClientCanvasData(clientId),
+    getNudgesSentToClient(clientId, 20),
+  ])
 
   if (!clientData) {
     notFound()
@@ -67,6 +71,9 @@ export default async function CoachClientDetailPage({ params }: PageProps) {
               developmentTheme={themes[0]?.theme.theme_text || null}
             />
           </div>
+
+          {/* Nudge History */}
+          <NudgeHistory nudges={nudgeHistory} />
         </div>
 
         {/* Leadership Purpose */}
