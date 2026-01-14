@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient, getUser } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { ActionResult } from './onboarding'
 
 /**
@@ -93,8 +94,10 @@ export async function updateClientPadletUrl(
       return { success: false, error: 'Can only update Padlet links for clients' }
     }
 
-    // Update the client's padlet_url
-    const { error: updateError } = await supabase
+    // Update the client's padlet_url using admin client (bypasses RLS)
+    // This is necessary because RLS only allows users to update their own row
+    const adminClient = createAdminClient()
+    const { error: updateError } = await adminClient
       .from('users')
       .update({ padlet_url: normalizedUrl })
       .eq('id', clientId)
