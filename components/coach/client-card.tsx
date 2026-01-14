@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { User, Target, Lightbulb, MessageSquare, Phone, ExternalLink, Link2 } from 'lucide-react'
 import { SendNudgeModal } from './send-nudge-modal'
+import { AddPadletModal } from './add-padlet-modal'
 import type { ClientSummary } from '@/lib/queries/coach'
 
 interface ClientCardProps {
@@ -12,6 +13,7 @@ interface ClientCardProps {
 
 export function ClientCard({ client }: ClientCardProps) {
   const [isNudgeModalOpen, setIsNudgeModalOpen] = useState(false)
+  const [isPadletModalOpen, setIsPadletModalOpen] = useState(false)
 
   const { user, currentTheme, weeklyActions } = client
 
@@ -77,14 +79,17 @@ export function ClientCard({ client }: ClientCardProps) {
                 Padlet
               </a>
             ) : (
-              <Link
-                href={`/coach/client/${user.id}`}
-                onClick={(e) => e.stopPropagation()}
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsPadletModalOpen(true)
+                }}
                 className="px-3 py-1.5 bg-[#f0f3fa] rounded-xl text-xs font-mono shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] hover:shadow-[2px_2px_4px_#d1d9e6,-2px_-2px_4px_#ffffff] active:shadow-[inset_2px_2px_4px_#d1d9e6,inset_-2px_-2px_4px_#ffffff] transition-all duration-200 flex items-center justify-center gap-1.5 text-gray-400"
               >
                 <Link2 className="h-3.5 w-3.5" />
                 Add Padlet
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -139,6 +144,15 @@ export function ClientCard({ client }: ClientCardProps) {
         clientPhone={user.phone}
         developmentTheme={currentTheme?.theme_text}
         latestProgress={null}
+      />
+
+      {/* Add Padlet Modal */}
+      <AddPadletModal
+        open={isPadletModalOpen}
+        onOpenChange={setIsPadletModalOpen}
+        clientId={user.id}
+        clientName={user.name}
+        currentUrl={user.padlet_url}
       />
     </>
   )
