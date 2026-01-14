@@ -126,24 +126,6 @@ export function SendNudgeModal({
               <p className="text-sm text-gray-500 font-mono mt-1">
                 Send a reflective prompt to {clientName}.
               </p>
-
-              {/* Optional context */}
-              {(developmentTheme || latestProgress) && (
-                <div className="mt-4 p-3 bg-[#f0f3fa] rounded-xl shadow-[inset_3px_3px_6px_#d1d9e6,inset_-3px_-3px_6px_#ffffff]">
-                  {developmentTheme && (
-                    <div className="mb-2">
-                      <span className="text-xs font-medium text-gray-500 font-mono">Theme: </span>
-                      <span className="text-xs text-gray-600 font-mono">{developmentTheme}</span>
-                    </div>
-                  )}
-                  {latestProgress && (
-                    <div>
-                      <span className="text-xs font-medium text-gray-500 font-mono">Latest: </span>
-                      <span className="text-xs text-gray-600 font-mono line-clamp-2">{latestProgress}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Message input */}
