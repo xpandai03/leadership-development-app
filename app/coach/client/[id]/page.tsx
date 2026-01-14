@@ -34,14 +34,6 @@ export default async function CoachClientDetailPage({ params }: PageProps) {
 
   const { user: client, themes } = clientData
 
-  // TEMPORARY DEBUG - REMOVE AFTER FIXING
-  console.log('[PADLET_DEBUG] Fetched client data:', {
-    clientId: client.id,
-    clientName: client.name,
-    padlet_url: client.padlet_url,
-    allKeys: Object.keys(client),
-  })
-
   return (
     <div className="min-h-screen bg-slate-50">
       <AppHeader userName={client.name} userRole="coach" />
@@ -82,10 +74,6 @@ export default async function CoachClientDetailPage({ params }: PageProps) {
           </div>
 
           {/* Padlet Link */}
-          {/* TEMPORARY DEBUG - REMOVE AFTER FIXING */}
-          <div className="text-xs text-red-500 font-mono mt-3 pt-3 border-t border-red-200">
-            DEBUG: padlet_url = {JSON.stringify(client.padlet_url)}
-          </div>
           <PadletLinkEditor
             clientId={client.id}
             currentUrl={client.padlet_url}

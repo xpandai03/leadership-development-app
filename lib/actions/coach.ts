@@ -97,18 +97,13 @@ export async function updateClientPadletUrl(
     // Update the client's padlet_url using admin client (bypasses RLS)
     // This is necessary because RLS only allows users to update their own row
     const adminClient = createAdminClient()
-    console.log('[PADLET_DEBUG] Attempting update:', { clientId, normalizedUrl })
-
-    const { data: updateData, error: updateError } = await adminClient
+    const { error: updateError } = await adminClient
       .from('users')
       .update({ padlet_url: normalizedUrl })
       .eq('id', clientId)
-      .select('padlet_url')
-
-    console.log('[PADLET_DEBUG] Update result:', { updateData, updateError })
 
     if (updateError) {
-      console.error('[PADLET_DEBUG] Error updating padlet_url:', updateError)
+      console.error('Error updating padlet_url:', updateError)
       return { success: false, error: 'Failed to update Padlet link' }
     }
 

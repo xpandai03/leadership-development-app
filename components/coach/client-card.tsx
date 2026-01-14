@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { User, Target, Lightbulb, MessageSquare, Phone, ExternalLink } from 'lucide-react'
+import { User, Target, Lightbulb, MessageSquare, Phone, ExternalLink, Link2 } from 'lucide-react'
 import { SendNudgeModal } from './send-nudge-modal'
 import type { ClientSummary } from '@/lib/queries/coach'
 
@@ -47,21 +47,46 @@ export function ClientCard({ client }: ClientCardProps) {
               </p>
             </div>
           </div>
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setIsNudgeModalOpen(true)
-            }}
-            disabled={!user.phone}
-            title={!user.phone ? 'Client has no phone number' : 'Send a nudge'}
-            className={`px-4 py-2 bg-[#f0f3fa] rounded-xl text-sm font-mono shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] hover:shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 ${
-              !user.phone ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-[#8B1E3F]'
-            }`}
-          >
-            <MessageSquare className="h-4 w-4" />
-            Nudge
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Padlet Button */}
+            {user.padlet_url ? (
+              <a
+                href={user.padlet_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="px-4 py-2 bg-[#f0f3fa] rounded-xl text-sm font-mono shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] hover:shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 text-[#8B1E3F]"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Padlet
+              </a>
+            ) : (
+              <Link
+                href={`/coach/client/${user.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="px-4 py-2 bg-[#f0f3fa] rounded-xl text-sm font-mono shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] hover:shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 text-gray-400"
+              >
+                <Link2 className="h-4 w-4" />
+                Add Padlet
+              </Link>
+            )}
+            {/* Nudge Button */}
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setIsNudgeModalOpen(true)
+              }}
+              disabled={!user.phone}
+              title={!user.phone ? 'Client has no phone number' : 'Send a nudge'}
+              className={`px-4 py-2 bg-[#f0f3fa] rounded-xl text-sm font-mono shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#ffffff] hover:shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#d1d9e6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200 flex items-center gap-2 ${
+                !user.phone ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-[#8B1E3F]'
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Nudge
+            </button>
+          </div>
         </div>
 
         {/* Current Theme */}
